@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <!-- 样式文件 -->
+    <link rel="stylesheet" href="./umeditor/themes/default/css/umeditor.css">
+    <!-- 引用jquery -->
+    <script src="./umeditor/third-party/jquery.min.js"></script>
+    <!-- 配置文件 -->
+    <script type="text/javascript" src="./umeditor/umeditor.config.js"></script>
+    <!-- 编辑器源码文件 -->
+    <script type="text/javascript" src="./umeditor/umeditor.js"></script>
+    <!-- 语言包文件 -->
+    <script type="text/javascript" src="./umeditor/lang/zh-cn/zh-cn.js"></script>
+    <script src="layer/layer.js"></script>
+<!--    <script src="jquery.ajaxfileupload.js"></script>-->
+    <script src="ajaxfileupload.js"></script>
+
+
+    <style>
+        /*设置按扭样式*/
+        .edui-icon-test{
+            background-position: -380px 0;
+        }
+        input{
+            margin-top:15px;
+            margin-left:15px;
+        }
+    </style>
+
+    <!-- 实例化编辑器代码 -->
+    <script type="text/javascript">
+        $(function(){
+            // 配置工具栏
+            window.UMEDITOR_CONFIG.toolbar = [
+                // 加入一个 test
+                'test | source | undo redo | bold italic underline strikethrough  forecolor backcolor | removeformat |',
+                '| justifyleft justifycenter justifyright justifyjustify |',
+                'link unlink | emotion image video | map',
+                '| fullscreen'
+            ];
+        });
+    </script>
+</head>
+<body>
+    <h1>给UMeditor添加导入word功能（docx格式）</h1>
+
+    <script type="text/plain" id="myEditor" style="width:1000px;height:240px;">
+        <p>这里我可以写一些输入提示</p>
+    </script>
+
+    <!-- 实例化编辑器代码 -->
+    <script type="text/javascript">
+        $(function() {
+            // 自定义工具栏
+            UM.registerUI('test',
+                function(name) {
+                    var me = this;
+                    var $btn = $.eduibutton({
+                        icon : name,
+                        click : function(){
+                            // 点击之后的操作
+                            layer.open({
+                                type: 1,
+                                skin: 'layui-layer-rim', //加上边框
+                                area: ['420px', '150px'], //宽高
+                                content: '<input type="file" id="file" name="file" title="上传word" value="" ><br/><input type="button" value="上传" id="submit" />'
+                            });
+                        },
+                        title: '导入word'
+                    });
+                    this.addListener('selectionchange',function(){
+                        //切换为不可编辑时，把自己变灰
+                        var state = this.queryCommandState(name);
+                        $btn.edui().disabled(state == -1).active(state == 1)
+                    });
+                    return $btn;
+                }
+            );
+
+            //实例化编辑器
+            var um = UM.getEditor('myEditor');
+
+            // 点击上传按钮，发送ajax，上传word文档，并获取到返回的html地址
+            // 动态生成的元素需要使用在document上加点击事件
+            $(document).on('click','#submit',function(){
+                var path = $('#file').val();
+                if ($.trim(path) == "") {
+                    alert("请选择要上传的文件");
+                    return;
+                }
+
+                $.ajaxFileUpload({
+                    url: 'form.php',  //这里是服务器处理的代码
+                    type: 'post',
+                    secureuri: false, //一般设置为false
+                    fileElementId: 'file', // 上传文件的id、name属性名
+                    dataType: 'json', //返回值类型，一般设置为json、application/json
+                    success: function (data, status) {
+                        console.log('success')
+                    },
+                    error:function(data, status, e){
+                        console.log('error')
+                        var responseText = data.responseText;
+
+                        // 把html赋值给富文本，，并关闭layui
+                        $('.layui-layer-close').click();
+                        um.setContent(responseText);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
